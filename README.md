@@ -58,6 +58,7 @@
 - !findemoteinchannel \<channel name\> \<text\>
 - !searchemotes \<text\>
 - !listeningchannels
+- !deleteemote <emote\>
 
 [In development]
 - !addlistenchannel <channel name\>
