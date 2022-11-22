@@ -92,6 +92,17 @@ async def addemote(ctx, url: str, emotename: str = None):
                 if success: break
         if not success:
             await ctx.send(f'Unable to add emote {ename}: {error}')
+ 
+@client.command()
+async def deleteemote(ctx, emoji: discord.Emoji):
+    guild = ctx.guild
+    if ctx.author.guild_permissions.manage_emojis:
+        try:
+            await emoji.delete()
+            await ctx.send(f'Successfully deleted: {emoji}')
+        except Exception as err:
+            print(err)
+            await ctx.send(err)
 
 # @client.command()
 # async def downloadlocal(ctx, url: str, size: int):
