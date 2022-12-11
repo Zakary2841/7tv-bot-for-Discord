@@ -1,6 +1,5 @@
 import discord
 from discord.ext import commands
-from discord import app_commands
 import os
 from io import BytesIO
 from types import SimpleNamespace
@@ -14,9 +13,10 @@ import time
 f = open('config.json')
 cfg = json.load(f, object_hook=lambda d: SimpleNamespace(**d))
 TOKEN = cfg.TOKEN  #put the token of the bot here
-GUILD = cfg.discord_guild_id  #put the token of the bot here
+client = commands.Bot(command_prefix=cfg.prefix,intents=discord.Intents.all())
 folder_dir = cfg.output_folder
 listenchannel_q = asyncio.Queue()
+#resume_q = asyncio.Queue()
 event = asyncio.Event()
 
 if not os.path.exists(folder_dir):
@@ -28,22 +28,6 @@ if not os.path.exists("tmp"):
     print("Temporary folder is not found")
     os.makedirs("tmp")
     print("Temporary folder is created")
-    
-class Bot(commands.Bot):
-    def __init__(self):
-        intents = discord.Intents.default()
-        intents.message_content = True
-        super().__init__(command_prefix = "!", intents = intents)
-
-    async def setup_hook(self):
-        await self.tree.sync(guild = discord.Object(id = GUILD))
-        print(f"Synced slash commands for {self.user}.")
-    
-    async def on_command_error(self, ctx, error):
-        await ctx.reply(error, ephemeral = True)
-        raise error
-
-client = Bot()
 
 @client.event
 async def on_ready():
@@ -70,16 +54,13 @@ async def on_message(message):
 
     await client.process_commands(message)
 
-@client.hybrid_command(name = "addemote", with_app_command = True, description = "Adds an emote using the provided 7TV Link")
-@app_commands.guilds(discord.Object(id = GUILD))
-@commands.has_permissions(manage_emojis = True)
+@client.command()
 async def addemote(ctx, url: str, emotename: str = None):
     success = False
     guild = ctx.guild
     ename = "error"
     error = ""
     if ctx.author.guild_permissions.manage_emojis:
-        await ctx.defer(ephemeral = True)
         emoteID = url.split("/")[-1]
         for i in reversed(range(1, 5)):
             print(f"Trying size {i}x...")
@@ -112,13 +93,10 @@ async def addemote(ctx, url: str, emotename: str = None):
         if not success:
             await ctx.send(f'Unable to add emote {ename}: {error}')
  
-@client.hybrid_command(name = "deleteemote", with_app_command = True, description = "Delete a discord emote by specifying the name")
-@app_commands.guilds(discord.Object(id = GUILD))
-@commands.has_permissions(manage_emojis = True)
+@client.command()
 async def deleteemote(ctx, emoji: discord.Emoji):
     guild = ctx.guild
     if ctx.author.guild_permissions.manage_emojis:
-        await ctx.defer(ephemeral = True)
         try:
             await emoji.delete()
             await ctx.send(f'Successfully deleted: {emoji}')
@@ -126,13 +104,21 @@ async def deleteemote(ctx, emoji: discord.Emoji):
             print(err)
             await ctx.send(err)
 
-@client.hybrid_command(name = "findemoteinchannel", with_app_command = True, description = "Find an emote in a Twitch Channel")
-@app_commands.guilds(discord.Object(id = GUILD))
-@commands.has_permissions(manage_emojis = True)
+# @client.command()
+# async def downloadlocal(ctx, url: str, size: int):
+#     if ctx.author.guild_permissions.manage_emojis:
+#         emoteID = url.split("/")[-1]
+#         e = Emote(emoteID,size)
+#         if hasattr(e.info, 'message'):
+#             await ctx.send(e.message)
+#         else:
+#             e.download(folder_dir)
+#             await ctx.send(f'Emote downloaded successfully!')
+
+@client.command()
 async def findemoteinchannel(ctx, channel: str, emote: str, exact= False):
     message = ""
     if ctx.author.guild_permissions.manage_emojis:
-        await ctx.defer(ephemeral = True)
         c = Channel(channel)
         if hasattr(c.info, 'message'):
             await ctx.send("User does not exist!")
@@ -153,13 +139,10 @@ async def findemoteinchannel(ctx, channel: str, emote: str, exact= False):
             embed.set_footer(text="You can also add the emotes to your server as emoji by: !addemote <emote url>")
             await ctx.send(embed= embed)
 
-@client.hybrid_command(name = "searchemotes", with_app_command = True, description = "Search for emotes using the name")
-@app_commands.guilds(discord.Object(id = GUILD))
-@commands.has_permissions(manage_emojis = True)
+@client.command()
 async def searchemotes(ctx, emote: str):
     message = ""
     if ctx.author.guild_permissions.manage_emojis:
-        await ctx.defer(ephemeral = True)
         elist = searchemote(emote)
         message += f'Found {len(elist)} emote(s) that contains "{emote}":'
         for i in elist:
@@ -177,12 +160,9 @@ async def searchemotes(ctx, emote: str):
         await ctx.send(embed= embed)
 
 
-@client.hybrid_command(name = "addlistenchannel", with_app_command = True, description = "Add a Twitch channel to listen for 7TV emote updates. (Requires restart)")
-@app_commands.guilds(discord.Object(id = GUILD))
-@commands.has_permissions(manage_emojis = True)
+@client.command()
 async def addlistenchannel(ctx, channel: str):
     if ctx.author.guild_permissions.manage_emojis:
-        await ctx.defer(ephemeral = True)
         await event.wait()
         print("sleeping")
         print(event.is_set())
@@ -199,12 +179,9 @@ async def addlistenchannel(ctx, channel: str):
             await ctx.send(err)
         event.set()
 
-@client.hybrid_command(name = "removelistenchannel", with_app_command = True, description = "Remove a Twitch channel to listen for 7TV emote updates. (Requires restart)")
-@app_commands.guilds(discord.Object(id = GUILD))
-@commands.has_permissions(manage_emojis = True)
+@client.command()
 async def removelistenchannel(ctx, channel: str):
     if ctx.author.guild_permissions.manage_emojis:
-        await ctx.defer(ephemeral = True)
         await event.wait()
         print("sleeping")
         print(event.is_set())
@@ -221,13 +198,10 @@ async def removelistenchannel(ctx, channel: str):
             await ctx.send(err)
         event.set()
 
-@client.hybrid_command(name = "listeningchannels", with_app_command = True, description = "Show Twitch channels that the bot is listening to for 7TV emote updates.")
-@app_commands.guilds(discord.Object(id = GUILD))
-@commands.has_permissions(manage_emojis = True)
+@client.command()
 async def listeningchannels(ctx):
     msg = "Currently listening: "
     if ctx.author.guild_permissions.manage_emojis:
-        await ctx.defer(ephemeral = True)
         if cfg.listeningUsers:
             lc = [Channel(i) for i in cfg.listeningUsers]
             for i in lc[:-1]:
@@ -298,5 +272,27 @@ async def listen():
                     await asyncio.sleep(5)
         await asyncio.sleep(5)
 
-client.run(TOKEN)
+#client.run(TOKEN)
 
+loop = asyncio.get_event_loop()
+
+async def run_bot():
+    try:
+        await client.start(TOKEN)
+    except Exception:
+        await client.close()
+
+
+def run_in_thread():
+    fut = asyncio.run_coroutine_threadsafe(listen(), loop)
+    fut.result()  # wait for the result
+
+
+async def main():
+    await asyncio.gather(
+        run_bot(),
+        asyncio.to_thread(run_in_thread)
+    )
+
+
+loop.run_until_complete(main())

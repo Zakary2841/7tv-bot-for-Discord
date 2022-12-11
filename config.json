@@ -1,6 +1,5 @@
 {
     "TOKEN": "",
-	"discord_guild_id": "",
     "prefix": "!",
     "output_folder": "out",
     "showemote_size": 4,
