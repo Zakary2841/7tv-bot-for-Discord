@@ -99,6 +99,7 @@ async def deleteemote(ctx, emoji: discord.Emoji):
     if ctx.author.guild_permissions.manage_emojis:
         try:
             await emoji.delete()
+            print(f'Successfully deleted: {emoji}')
             await ctx.send(f'Successfully deleted: {emoji}')
         except Exception as err:
             print(err)
