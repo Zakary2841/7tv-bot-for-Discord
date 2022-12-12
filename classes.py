@@ -80,14 +80,17 @@ class Channel:
     def __init__(self,name):
         self.url = f"https://api.7tv.app/v2/users/{name}"
         response = requests.get(self.url)
-        self.info = json.loads(response.text, object_hook=lambda d: SimpleNamespace(**d))
-        self.name = self.info.display_name
-        self.id = self.info.id
+        if response.status_code == 404:
+            raise Exception("User not found")
+        else:
+            self.info = json.loads(response.text, object_hook=lambda d: SimpleNamespace(**d))
+            self.name = self.info.display_name
+            self.id = self.info.id
 
-        emoteurl = f"https://api.7tv.app/v2/users/{name}/emotes"
-        response = requests.get(emoteurl)
-        self.info = json.loads(response.text, object_hook=lambda d: SimpleNamespace(**d))
-        self.list = []
+            emoteurl = f"https://api.7tv.app/v2/users/{name}/emotes"
+            response = requests.get(emoteurl)
+            self.info = json.loads(response.text, object_hook=lambda d: SimpleNamespace(**d))
+            self.list = []
 
     def findEmotes(self,emote,exact= True):
         for i in self.info:

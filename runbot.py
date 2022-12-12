@@ -120,25 +120,30 @@ async def deleteemote(ctx, emoji: discord.Emoji):
 async def findemoteinchannel(ctx, channel: str, emote: str, exact= False):
     message = ""
     if ctx.author.guild_permissions.manage_emojis:
-        c = Channel(channel)
-        if hasattr(c.info, 'message'):
-            await ctx.send("User does not exist!")
+        try:
+            c = Channel(channel)
+        except Exception:
+            await ctx.send("User not found. Please check the username and try again")
         else:
-            elist = c.findEmotes(emote, exact)
-            message += f'{channel} has {len(elist)} {emote} emote(s):'
-            for i in elist:
-                print(f"Found {i.name}")
-                message += f"\n[{i.name}](https://7tv.app/emotes/{i.id})"
+            print(c)
+            if hasattr(c.info, 'message'):
+                await ctx.send("User does not exist!")
+            else:
+                elist = c.findEmotes(emote, exact)
+                message += f'{channel} has {len(elist)} {emote} emote(s):'
+                for i in elist:
+                    print(f"Found {i.name}")
+                    message += f"\n[{i.name}](https://7tv.app/emotes/{i.id})"
 
-            embed = discord.Embed(
-                title= "Search completed!",
-                description= message,
-                colour= discord.Colour.from_rgb(40,177,166)
+                embed = discord.Embed(
+                    title= "Search completed!",
+                    description= message,
+                    colour= discord.Colour.from_rgb(40,177,166)
             )
 
-            embed.set_thumbnail(url="https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_e02650251d204198923de93a0c62f5f5/static/light/3.0")
-            embed.set_footer(text="You can also add the emotes to your server as emoji by: !addemote <emote url>")
-            await ctx.send(embed= embed)
+                embed.set_thumbnail(url="https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_e02650251d204198923de93a0c62f5f5/static/light/3.0")
+                embed.set_footer(text="You can also add the emotes to your server as emoji by: !addemote <emote url>")
+                await ctx.send(embed= embed)
 
 @client.command()
 async def searchemotes(ctx, emote: str):
