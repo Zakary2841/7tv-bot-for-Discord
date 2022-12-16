@@ -3,10 +3,10 @@
     "prefix": "!",
     "output_folder": "out",
     "showemote_size": 4,
-    "case_sensitive": true,
-    "category": "TOP",
-    "exact_match": false,
-    "ignore_tags": true,
+    "SevenTV_case_sensitive": false,
+    "SevenTV_category": "TOP",
+    "SevenTV_exact_match": false,
+    "SevenTV_ignore_tags": true,
     "listen_channel": null,
-    "listeningUsers": [null]
+    "listeningUsers": []
 }

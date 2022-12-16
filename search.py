@@ -13,10 +13,10 @@ def searchemote(command_query):
                     "limit": 10,
                     "page": 1,
                     "filter": {
-                        "case_sensitive": cfg.case_sensitive,
-                        "category": cfg.category,
-                        "exact_match": cfg.exact_match,
-                        "ignore_tags": cfg.ignore_tags,
+                        "case_sensitive": cfg.SevenTV_case_sensitive,
+                        "category": cfg.SevenTV_category,
+                        "exact_match": cfg.SevenTV_exact_match,
+                        "ignore_tags": cfg.SevenTV_ignore_tags,
                     },
                 },
                 "extensions": {},
@@ -25,7 +25,7 @@ def searchemote(command_query):
             }
 
     response = requests.post(url, json=query)
-    info = json.loads(response.text, object_hook=lambda d: SimpleNamespace(**d))#
+    info = json.loads(response.text, object_hook=lambda d: SimpleNamespace(**d))
 
     if info.data:
         return info.data.emotes.items
