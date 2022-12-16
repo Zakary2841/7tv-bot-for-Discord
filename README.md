@@ -1,3 +1,6 @@
+# **PROJECT DEVELOPMENT IS HALTED (01/12/2022)**
+Active fork here: https://github.com/zakary2841/7tv-bot-for-Discord
+
 # 7tv bot for Discord
 
 ## Set up
