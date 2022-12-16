@@ -125,7 +125,6 @@ async def findemoteinchannel(ctx, channel: str, emote: str, exact= False):
         except Exception:
             await ctx.send("User not found. Please check the username and try again")
         else:
-            print(c)
             if hasattr(c.info, 'message'):
                 await ctx.send("User does not exist!")
             else:
