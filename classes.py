@@ -4,6 +4,13 @@ import os
 from types import SimpleNamespace
 import time
 
+class UserNotFound(Exception):
+    "Raised when the response from the request is 400."
+    pass
+class InvalidCharacters(Exception):
+    "Raised when the user inputs invalid characters"
+    pass
+    
 class Emote:
     def __init__(self,id, size):
         self.id = id
@@ -78,24 +85,34 @@ class Emote:
 
 class Channel:
     def __init__(self,name):
-        self.url = f"https://api.7tv.app/v2/users/{name}"
+        self.url = f"https://api.ivr.fi/v2/twitch/user?login={name}"
         response = requests.get(self.url)
-        if response.status_code == 404:
-            raise Exception("User not found")
+        if response.text == '[]':
+            raise UserNotFound
+        if response.status_code == 400:
+            print(json.loads(response.text)['error']['message'])
+            raise InvalidCharacters
+        elif response.status_code not in {200, 400}:
+            #raise Exception("Unhandled web request exception. Please try again or contact the developer")
+            error = json.loads(response.text)['error']['message']
+            ctx.send(error)
+            print(error)
+            pass
         else:
-            self.info = json.loads(response.text, object_hook=lambda d: SimpleNamespace(**d))
-            self.name = self.info.display_name
-            self.id = self.info.id
-
-            emoteurl = f"https://api.7tv.app/v2/users/{name}/emotes"
-            response = requests.get(emoteurl)
-            self.info = json.loads(response.text, object_hook=lambda d: SimpleNamespace(**d))
+            self.name = json.loads(response.text)[0]['displayName']
+            self.twitchid = json.loads(response.text)[0]['id']
+            userurl = f"https://api.7tv.app/v3/users/twitch/{self.twitchid}"
+            response = requests.get(userurl)
+            self.parsed = json.loads(response.text, object_hook=lambda d: SimpleNamespace(**d))
+            self.id = self.parsed.user.id 
+            self.info = self.parsed.emote_set.emotes
             self.list = []
-
+                
     def findEmotes(self,emote,exact= True):
         for i in self.info:
-            if (emote in (i.name).lower() and not exact) or (emote == i.name and exact):
+            if ((emote).lower() in (i.name).lower() and not exact) or (emote == i.name and exact):
                 self.list.append(i)
+        #print(self.list) 
         return(self.list)
 
     def findEmotesByTags(self,tag):
@@ -103,14 +120,14 @@ class Channel:
             if tag in i.tags:
                 self.list.append(i)
         return(self.list)
+#Function to look up 7TV users by 7TV ID        
+    def lookup7TVUser(userid):
+        SevenTVUser = f"https://api.7tv.app/v3/users/{userid}"
+        response = requests.get(SevenTVUser)
+        jsonparsed = json.loads(response.text, object_hook=lambda d: SimpleNamespace(**d))
+        return(jsonparsed.display_name)
 
     def getEmotes(self,emote, size, output_folder,exact= True):
         for i in self.findEmotes(emote, exact):
             e = Emote(i.id, size)
-            e.download(output_folder)
-
-if __name__ == "__main__":
-    # me = Channel("60ae3c29b2ecb015051f8f9a")
-    # print(me.name)
-    me = Emote("60abf171870d317bef23d399",size=4)
-    print(me.isAnimated)
+            e.download(output_folder) 
