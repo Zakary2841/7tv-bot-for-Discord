@@ -16,7 +16,6 @@ TOKEN = cfg.TOKEN  #put the token of the bot here
 client = commands.Bot(command_prefix=cfg.prefix,intents=discord.Intents.all())
 folder_dir = cfg.output_folder
 listenchannel_q = asyncio.Queue()
-#resume_q = asyncio.Queue()
 event = asyncio.Event()
 
 if not os.path.exists(folder_dir):
@@ -40,7 +39,6 @@ async def on_ready():
 async def on_message(message):
     if message.author == client.user:
         return
-
     if message.content.startswith(r'https://old.7tv.app/emotes/'):
         emoteID = message.content.split("/")[-1]
         e = Emote(emoteID,cfg.showemote_size)
@@ -51,8 +49,23 @@ async def on_message(message):
             with open(e.file_path, 'rb') as fp:
                 await message.channel.send(file=discord.File(fp))
             os.remove(e.file_path)
-
     await client.process_commands(message)
+ 
+@client.event
+async def on_command_error(ctx, error):
+    if isinstance(error,commands.errors.EmojiNotFound):
+        msg = "The emote specified was not found. Please check the spelling and capitalisation and try again"
+        await ctx.send(msg)
+        print(msg)
+    elif isinstance(error,commands.errors.NotOwner):
+        app_info = await client.application_info()
+        botowner = app_info.owner
+        msg = f"You are not allowed to run this command. Only the bot owner <@{botowner.id}> can run this command "
+        await ctx.send(msg)
+        print(msg)
+    else:
+        await ctx.reply(error, mention_author=False)
+        print(error)
 
 @client.command()
 async def addemote(ctx, url: str, emotename: str = None):
@@ -82,7 +95,6 @@ async def addemote(ctx, url: str, emotename: str = None):
                         success = True
 
                     except Exception as err:
-                        #print(f'File size of {i}x is too big!')
                         error = err
                         print(err)
 
@@ -94,27 +106,17 @@ async def addemote(ctx, url: str, emotename: str = None):
             await ctx.send(f'Unable to add emote {ename}: {error}')
  
 @client.command()
-async def deleteemote(ctx, emoji: discord.Emoji):
-    guild = ctx.guild
+async def deleteemote(ctx, emote: discord.Emoji):
     if ctx.author.guild_permissions.manage_emojis:
+        await ctx.defer(ephemeral = True)
         try:
-            await emoji.delete()
-            print(f'Successfully deleted: {emoji}')
-            await ctx.send(f'Successfully deleted: {emoji}')
+            await ctx.guild.delete_emoji(emote)
+            msg = (f'Successfully deleted: {emote}')
+            print(msg)
+            await ctx.send(msg)
         except Exception as err:
             print(err)
             await ctx.send(err)
-
-# @client.command()
-# async def downloadlocal(ctx, url: str, size: int):
-#     if ctx.author.guild_permissions.manage_emojis:
-#         emoteID = url.split("/")[-1]
-#         e = Emote(emoteID,size)
-#         if hasattr(e.info, 'message'):
-#             await ctx.send(e.message)
-#         else:
-#             e.download(folder_dir)
-#             await ctx.send(f'Emote downloaded successfully!')
 
 @client.command()
 async def findemoteinchannel(ctx, channel: str, emote: str, exact= False):
