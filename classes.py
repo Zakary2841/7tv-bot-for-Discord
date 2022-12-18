@@ -29,7 +29,7 @@ class Emote:
 
         self.info = json.loads(response.text, object_hook=lambda d: SimpleNamespace(**d))
 
-        if hasattr(self.info, 'message'):
+        if hasattr(self.info, 'error'):
             self.message = f"Error {self.info.status}: {self.info.message}"
 
         self.isAnimated = not (self.info.host.files[0].frame_count == 1)
@@ -45,7 +45,6 @@ class Emote:
         #Download as PNG
         filename = f"{self.info.name}_{self.size}x.png"
         self.file_path = os.path.join(self.output_folder, filename)
-        # emote_url = self.info.host.urls[self.size-1][1]+ ".png"
         emote_url = f"https:{self.info.host.url}/{self.size}x.png"
         r = requests.get(emote_url, stream=True)
         if r.ok:
@@ -104,15 +103,18 @@ class Channel:
             userurl = f"https://api.7tv.app/v3/users/twitch/{self.twitchid}"
             response = requests.get(userurl)
             self.parsed = json.loads(response.text, object_hook=lambda d: SimpleNamespace(**d))
-            self.id = self.parsed.user.id 
-            self.info = self.parsed.emote_set.emotes
-            self.list = []
-                
+            if hasattr(self.parsed, 'user'): #If the Attribute "user" does not exist. It means the user does not have a 7TV account so the else will throw the "UserNotFound" Error
+                self.id = self.parsed.user.id 
+                self.info = self.parsed.emote_set.emotes
+                self.list = []
+            else: 
+                print(f"{self.parsed.error}: {self.parsed}")
+                raise UserNotFound
+
     def findEmotes(self,emote,exact= True):
         for i in self.info:
             if ((emote).lower() in (i.name).lower() and not exact) or (emote == i.name and exact):
                 self.list.append(i)
-        #print(self.list) 
         return(self.list)
 
     def findEmotesByTags(self,tag):
