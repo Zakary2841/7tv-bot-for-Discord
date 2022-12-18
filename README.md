@@ -1,5 +1,5 @@
 # **HYBRID COMMANDS FORK**
-Slash Commands will work with this fork. Please note that some functionality may not work as expected. If this happens please raise an issue and I will look into fixing the issue.
+Slash Commands will work with this fork. Please note that this is a live testing branch and that some functionality may not work as expected. If this happens please raise an issue and I will look into fixing the issue.
 
 # 7tv bot for Discord
 
