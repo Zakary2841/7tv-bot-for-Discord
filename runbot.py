@@ -30,14 +30,26 @@ class Bot(commands.Bot):
     def __init__(self):
         intents = discord.Intents.default()
         intents.message_content = True
-        super().__init__(command_prefix = "!", intents = intents)
+        super().__init__(command_prefix = "!", intents = intents, case_insensitive=True)
 
     async def setup_hook(self):
         event.set()
     
     async def on_command_error(self, ctx, error):
-        await ctx.reply(error, ephemeral = True)
-        raise error
+        if isinstance(error,commands.errors.EmojiNotFound):
+            msg = "The emote specified was not found. Please check the spelling and capitalisation and try again"
+            await ctx.reply(msg,mention_author=False)
+            print(msg)
+        elif isinstance(error,commands.errors.NotOwner):
+            app_info = await client.application_info()
+            botowner = app_info.owner
+            msg = f"You are not allowed to run this command. Only the bot owner <@{botowner.id}> can run this command "
+            await ctx.reply(msg, mention_author=False)
+            print(msg)
+        else:
+            await ctx.reply(error, mention_author=False)
+            print(error)
+            raise error
 
 client = Bot()
 
@@ -117,13 +129,10 @@ async def addemote(ctx, url: str, emotename: str = None):
 async def deleteemote(ctx, emote: discord.Emoji):
     if ctx.author.guild_permissions.manage_emojis:
         await ctx.defer(ephemeral = True)
-        try:
-            await emote.delete()
-            print(f'Successfully deleted: {emote}')
-            await ctx.send(f'Successfully deleted: {emote}')
-        except Exception as err:
-            print(err)
-            await ctx.send(err)
+        await ctx.guild.delete_emoji(emote)
+        msg = (f'Successfully deleted: {emote}')
+        print(msg)
+        await ctx.send(msg)
 
 
 @client.hybrid_command(name = "findemoteinchannel", with_app_command = True, description = "Find an emote in a Twitch Channel")#
@@ -300,7 +309,7 @@ async def sync(ctx):
         return
     print(f"User {ctx.message.author} ran 'sync' (Global) " )
     await ctx.defer(ephemeral = True)
-    #await client.tree.sync()
+    await client.tree.sync()
     msg = (f"Synced slash commands globally for {client.user}.")
     print(msg)
     await ctx.send(msg)        
@@ -368,7 +377,7 @@ async def listen():
         await asyncio.sleep(5)
 
 
-loop = asyncio.get_event_loop()
+loop = asyncio.new_event_loop()
 
 
 async def run_bot():
