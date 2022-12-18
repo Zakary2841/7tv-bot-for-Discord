@@ -13,7 +13,7 @@ import time
 f = open('config.json')
 cfg = json.load(f, object_hook=lambda d: SimpleNamespace(**d))
 TOKEN = cfg.TOKEN  #put the token of the bot here
-client = commands.Bot(command_prefix=cfg.prefix,intents=discord.Intents.all())
+client = commands.Bot(command_prefix=cfg.prefix,intents=discord.Intents.all(),case_insensitive=True)
 folder_dir = cfg.output_folder
 listenchannel_q = asyncio.Queue()
 event = asyncio.Event()
@@ -32,7 +32,6 @@ if not os.path.exists("tmp"):
 async def on_ready():
     print('We have logged in as {0.user}'.format(client))
     await listenchannel_q.put(client.get_channel(cfg.listen_channel))
-    #await resume_q.put(True)
     event.set()
 
 @client.event
@@ -55,17 +54,18 @@ async def on_message(message):
 async def on_command_error(ctx, error):
     if isinstance(error,commands.errors.EmojiNotFound):
         msg = "The emote specified was not found. Please check the spelling and capitalisation and try again"
-        await ctx.send(msg)
+        await ctx.reply(msg,mention_author=False)
         print(msg)
     elif isinstance(error,commands.errors.NotOwner):
         app_info = await client.application_info()
         botowner = app_info.owner
         msg = f"You are not allowed to run this command. Only the bot owner <@{botowner.id}> can run this command "
-        await ctx.send(msg)
+        await ctx.reply(msg, mention_author=False)
         print(msg)
     else:
         await ctx.reply(error, mention_author=False)
         print(error)
+        raise error
 
 @client.command()
 async def addemote(ctx, url: str, emotename: str = None):
@@ -108,15 +108,10 @@ async def addemote(ctx, url: str, emotename: str = None):
 @client.command()
 async def deleteemote(ctx, emote: discord.Emoji):
     if ctx.author.guild_permissions.manage_emojis:
-        await ctx.defer(ephemeral = True)
-        try:
-            await ctx.guild.delete_emoji(emote)
-            msg = (f'Successfully deleted: {emote}')
-            print(msg)
-            await ctx.send(msg)
-        except Exception as err:
-            print(err)
-            await ctx.send(err)
+        await ctx.guild.delete_emoji(emote)
+        msg = (f'Successfully deleted: {emote}')
+        print(msg)
+        await ctx.send(msg)
 
 @client.command()
 async def findemoteinchannel(ctx, channel: str, emote: str, exact= False):
@@ -279,9 +274,7 @@ async def listen():
                     await asyncio.sleep(5)
         await asyncio.sleep(5)
 
-#client.run(TOKEN)
-
-loop = asyncio.get_event_loop()
+loop = asyncio.new_event_loop()
 
 async def run_bot():
     try:
