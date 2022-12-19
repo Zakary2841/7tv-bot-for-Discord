@@ -17,6 +17,7 @@ TOKEN = cfg.TOKEN  #Gets TOKEN from config.json
 folder_dir = cfg.output_folder
 listenchannel_q = asyncio.Queue()
 event = asyncio.Event()
+ws = None #Define ws variable used in "listen" so we can query this in other commands
 
 if not os.path.exists(folder_dir):
     os.makedirs(folder_dir)
@@ -189,7 +190,7 @@ async def searchemotes(ctx, emote: str):
         await ctx.send(embed= embed)
 
 
-@client.hybrid_command(name = "addlistenchannel", with_app_command = True, description = "Add a Twitch channel to listen for 7TV emote updates. (Requires restart)")
+@client.hybrid_command(name = "addlistenchannel", with_app_command = True, description = "Add a Twitch channel to listen for 7TV emote updates")
 @app_commands.describe(channel='Name of the channel you want to add to the listening channels')
 @commands.has_permissions(manage_emojis = True)
 async def addlistenchannel(ctx, channel: str):
@@ -217,9 +218,24 @@ async def addlistenchannel(ctx, channel: str):
             await ctx.send(msg)
         else:
             try:
-                cfg.listeningUsers.append(c.id)
+                cfg.listeningUsers.append(c.id) #Add the 7TV ID to the "Config.json"
                 with open('config.json', 'w', encoding='utf-8') as f:
                     json.dump(cfg.__dict__, f, ensure_ascii=False, indent=4)
+                try:
+                    if ws != None: #If ws is not "None" (has been called by "listen") then send op code 35 and listen to the new channel
+                        await ws.send(json.dumps({
+                        "op": 35,
+                        "d": {
+                            "type": "emote_set.update",
+                            "condition": {
+                                "object_id": c.id
+                            }
+                        }
+                        }))
+                except Exception as err:
+                    print(err)
+                    await ctx.send(err)
+                    event.set()
                 print((f'Added {channel} to listening channels'))
                 await ctx.send(f'Added {channel} to listening channels')
             except Exception as err:
@@ -229,7 +245,7 @@ async def addlistenchannel(ctx, channel: str):
         event.set()
 
 
-@client.hybrid_command(name = "removelistenchannel", with_app_command = True, description = "Remove a Twitch channel to listen for 7TV emote updates. (Requires restart)")
+@client.hybrid_command(name = "removelistenchannel", with_app_command = True, description = "Remove a Twitch channel to listen for 7TV emote updates")
 @app_commands.describe(channel='Name of the channel you want to remove from the listening channels')
 @commands.has_permissions(manage_emojis = True)
 async def removelistenchannel(ctx, channel: str):
@@ -253,9 +269,24 @@ async def removelistenchannel(ctx, channel: str):
             return
         if c.id in cfg.listeningUsers:
             try:
-                cfg.listeningUsers.remove(c.id)
+                cfg.listeningUsers.remove(c.id) #Remove the 7TV ID to the "Config.json"
                 with open('config.json', 'w', encoding='utf-8') as f:
                     json.dump(cfg.__dict__, f, ensure_ascii=False, indent=4)
+                try:
+                    if ws != None: #If ws is not "None" (has been called by "listen") then send op code 36 and stop listening to the new channel
+                        await ws.send(json.dumps({
+                        "op": 36,
+                        "d": {
+                            "type": "emote_set.update",
+                            "condition": {
+                                "object_id": c.id
+                            }
+                        }
+                        }))
+                except Exception as err:
+                    print(err)
+                    await ctx.send(err)
+                    event.set()
                 msg = f'Removed {channel} from listening channels'
                 print(msg)
                 await ctx.send(msg)
@@ -315,6 +346,7 @@ async def sync(ctx):
     await ctx.send(msg)        
 
 async def listen():
+    global ws
     accessPt = "wss://events.7tv.io/v3"
     listenchannel = await listenchannel_q.get()
     title = ""

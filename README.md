@@ -78,7 +78,7 @@ Slash Commands will work with this fork. Please note that this is a live testing
 - !deleteemote <emote\>
 
 [In development]
-- !addlistenchannel <channel name\>  \- Requires bot restart to start tracking
-- !removelistenchannel <channel name\> \- Requires bot restart to stop tracking  \
+- !addlistenchannel <channel name\>   
+- !removelistenchannel <channel name\> \
 \
-These two commands require bot restart to start tracking. Will be updated in future to support live updates if possible 
+Supports live updating. If there are any errors, please raise them as an issue for me to look into!
