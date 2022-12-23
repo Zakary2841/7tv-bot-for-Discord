@@ -1,3 +1,7 @@
+# **PLEASE NOTE**
+This branch is not as up to date as Hybrid https://github.com/zakary2841/7tv-bot-for-Discord/tree/hybrid
+I will be updating main in the future to use the new functionality
+
 # 7tv bot for Discord
 
 ## Set up
