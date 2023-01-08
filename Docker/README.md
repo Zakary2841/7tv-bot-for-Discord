@@ -63,4 +63,4 @@ networks:
 
 ## Build from Dockerfile
 
-The Dockerfile is [located here](Docker/Dockerfile)
+The Dockerfile is [located here](Dockerfile)
