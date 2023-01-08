@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  7tvbot:
+    image: bradyns/7tv-bot-for-discord:latest
+    container_name: 7tvbot
+    restart: unless-stopped
+    ports:
+      - 6969:80
+    volumes:
+      - /path/to/your/config.json:/config.json
+    networks:
+      - example-network
+      
+networks:
+  example-network:
+    external: true

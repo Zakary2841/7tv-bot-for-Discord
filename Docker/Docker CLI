@@ -1,0 +1,8 @@
+docker run -d --name 7tvbot -p 6969:80 -v /path/to/your/config.json:/config.json --restart=unless-stopped bradyns/7tv-bot-for-discord:latest
+
+docker run -d \
+--name 7tvbot \
+-p 6969:80 \
+-v /path/to/your/config.json:/config.json \
+--restart=unless-stopped \
+bradyns/7tv-bot-for-discord:latest
