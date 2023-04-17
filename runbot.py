@@ -356,57 +356,60 @@ async def listen():
     eurl = ""
     while True:
         if listenchannel:
-            async with websockets.connect(accessPt) as ws:
-                for i in cfg.listeningUsers:
-                    await ws.send(json.dumps({
-                    "op": 35,
-                    "d": {
-                        "type": "emote_set.update",
-                        "condition": {
-                            # valid fields in the condition depend on the subscription type
-                            # though in most cases except creations, object_id is acceptable
-                            # to filter for a specific object.
+            try:
+                async with websockets.connect(accessPt) as ws:
+                    for i in cfg.listeningUsers:
+                        await ws.send(json.dumps({
+                        "op": 35,
+                        "d": {
+                            "type": "emote_set.update",
+                            "condition": {
+                                # valid fields in the condition depend on the subscription type
+                                # though in most cases except creations, object_id is acceptable
+                                # to filter for a specific object.
 
-                            "object_id": i
+                                "object_id": i
+                            }
                         }
-                    }
-                    }))
-                while event.is_set():
-                    msg = await ws.recv()
-                    parsed = json.loads(msg)
-                    parsed = parsed['d']
-                    if "body" in parsed:
-                        title = Channel.lookup7TVUser(parsed['body']['id'])
-                        if "pushed" in parsed['body']:
-                            e = Emote(parsed['body']['pushed'][0]['value']['id'],3)
-                            message = f"Added emote {parsed['body']['pushed'][0]['value']['name']}:\nhttps://7tv.app/emotes/{e.id}"
-                            color = discord.Colour.from_rgb(40, 177, 166)
+                        }))
+                    while event.is_set():
+                        msg = await ws.recv()
+                        parsed = json.loads(msg)
+                        parsed = parsed['d']
+                        if "body" in parsed:
+                            title = Channel.lookup7TVUser(parsed['body']['id'])
+                            if "pushed" in parsed['body']:
+                                e = Emote(parsed['body']['pushed'][0]['value']['id'],3)
+                                message = f"Added emote {parsed['body']['pushed'][0]['value']['name']}:\nhttps://7tv.app/emotes/{e.id}"
+                                color = discord.Colour.from_rgb(40, 177, 166)
 
-                        elif "pulled" in parsed['body']:
-                            e = Emote(parsed['body']['pulled'][0]['old_value']['id'],3)
-                            message = f"Removed emote {parsed['body']['pulled'][0]['old_value']['name']}:\nhttps://7tv.app/emotes/{e.id}"
-                            color = discord.Colour.from_rgb(177, 40, 51)
+                            elif "pulled" in parsed['body']:
+                                e = Emote(parsed['body']['pulled'][0]['old_value']['id'],3)
+                                message = f"Removed emote {parsed['body']['pulled'][0]['old_value']['name']}:\nhttps://7tv.app/emotes/{e.id}"
+                                color = discord.Colour.from_rgb(177, 40, 51)
 
-                        if e.isAnimated:
-                            eurl = f"https://cdn.7tv.app/emote/{e.id}/3x.gif"
-                        else:
-                            eurl = f"https://cdn.7tv.app/emote/{e.id}/3x.png"
+                            if e.isAnimated:
+                                eurl = f"https://cdn.7tv.app/emote/{e.id}/3x.gif"
+                            else:
+                                eurl = f"https://cdn.7tv.app/emote/{e.id}/3x.png"
 
-                        embed = discord.Embed(
-                            title=title,
-                            description=message,
-                            colour=color
-                        )
+                            embed = discord.Embed(
+                                title=title,
+                                description=message,
+                                colour=color
+                            )
 
-                        embed.set_thumbnail(
-                            url=eurl)
-                        embed.set_footer(
-                            text="You can also add the emotes to your server by doing: !addemote <emote url>")
-                        await listenchannel.send(embed=embed)
+                            embed.set_thumbnail(
+                                url=eurl)
+                            embed.set_footer(
+                                text="You can also add the emotes to your server by doing: !addemote <emote url>")
+                            await listenchannel.send(embed=embed)
 
-                while not event.is_set():
-                    await asyncio.sleep(5)
-        await asyncio.sleep(5)
+                    while not event.is_set():
+                        await asyncio.sleep(5)
+            except websockets.exceptions.ConnectionClosedError:
+                print("WebSocket connection closed. Reconnecting in 2 seconds...")            
+                await asyncio.sleep(5)
 
 
 loop = asyncio.new_event_loop()
