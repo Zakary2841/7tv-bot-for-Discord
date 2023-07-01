@@ -124,7 +124,7 @@ class Channel:
         return(self.list)
 #Function to look up 7TV users by 7TV ID        
     def lookup7TVUser(userid):
-        SevenTVUser = f"https://api.7tv.app/v3/users/{userid}"
+        SevenTVUser = f"https://7tv.io/v3/users/{userid}"
         response = requests.get(SevenTVUser)
         jsonparsed = json.loads(response.text, object_hook=lambda d: SimpleNamespace(**d))
         return(jsonparsed.display_name)
