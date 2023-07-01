@@ -100,7 +100,7 @@ class Channel:
         else:
             self.name = json.loads(response.text)[0]['displayName']
             self.twitchid = json.loads(response.text)[0]['id']
-            userurl = f"https://api.7tv.app/v3/users/twitch/{self.twitchid}"
+            userurl = f"https://7tv.io/v3/users/twitch/{self.twitchid}"
             response = requests.get(userurl)
             self.parsed = json.loads(response.text, object_hook=lambda d: SimpleNamespace(**d))
             if hasattr(self.parsed, 'user'): #If the Attribute "user" does not exist. It means the user does not have a 7TV account so the else will throw the "UserNotFound" Error
