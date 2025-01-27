@@ -1,48 +1,68 @@
-# **HYBRID COMMANDS FORK**
-Slash Commands will work with this fork. Please note that this is a live testing branch and that some functionality may not work as expected. If this happens please raise an issue and I will look into fixing the issue.
-
 # 7tv bot for Discord
+This is a bot for 7TV/Twitch that monitors when editors change emotes in the active emote set for the monitored channels. It also has some functional commands for managing emotes in the server.\
+This is a passion project/personal tool that I use. Forked from the original creator [WaterBoiledPizza](https://github.com/WaterBoiledPizza/7tv-bot-for-Discord) 
 
 ## Set up
+**Tested in Python 3.13.1 as of 27/01/2025**
 1) Download Python https://www.python.org/downloads/
-- Any version of Python from 3.9+ should work, so getting the latest stable version is recommended
+- Any version of Python from 3.13+ should work, so getting the latest stable version is recommended
 - Make sure to add Python to PATH
-2) Download the files into a folder you destinated
-3) At the folder, click `setup.bat` to download the required library for the script. 
+2) Download the files into a folder you choose
+3) At the folder, click setup.bat to download the required libraries for the script.
 
 ## Make a bot
 1) Go to https://discord.com/developers/applications
-2) Click [New Application] and give your app a name.
-3) At the bot tab, click [Add Bot], then copy the Token of the bot.
-4) Enable the following Privileged Gateway Intents
-	- Server Members Intent
-	- Message Content Intent
-5) Invite the bot to your server
-    - OAuth2 -> URL Generator
+2) Click `[New Application]` and give your app a name
+3) Accept the Terms of Service and click `[Create]`
+4) At the Installation Tab
+- Untick the `Installation Context` of `"User Install"`
+- Under `Default Install Settings`
+   - Add the scope `bot` then add the following permissions
+        - Attach Files
+        - Embed Links
+        - Manage Expressions
+        - Read Message History
+        - Send Messages
+        - Send Messages in Threads
+        - View Channels
+- Press `[Save Changes]`
+6) At the bot tab, click `[Reset Token]`, then copy the bot token and put it into config.json.
+    - Enable the following Privileged Gateway Intents
+    	- Server Members Intent
+    	- Message Content Intent
+ - Press `[Save Changes]`
+8) Invite the bot to your server
+    - Select `OAuth2` and scroll down to the URL Generator
     - Check the "bot" box
     - Check the following permissions
-		- Manage Emojis and Stickers
-		- Read Messages/View Channels
-		- Send Messages
-		- Send Messages in Threads
-		- Embed Links
-		- Attach Files
-		- Read Message History
+        - General    
+            - Manage Expressions
+            - Create Expressions
+            - View Channels
+        - Text
+    		- Send Messages
+    		- Send Messages in Threads
+    		- Embed Links
+    		- Attach Files
+    		- Read Message History
+    - Make sure the integration type is "Guild Install"
+9) Paste the link and accept/invite the bot to a server of your choosing
 
 ## Configuration
-- Add the token of your bot in `config.json`
+- Add the token of your bot in config.json
 - Change the prefix as you want
-- Change the size of the downloaded emote file
+- Change the size of the downloaded emote file (options are 1,2,3,4)
 - Add dedicated discord channel for listening
     - Go to Discord settings. In Advanced tab, enable Developer mode
     - Right click your chosen discord channel, then copy ID
-- Add 7tv user ID to listen. You can also do this using the commands
-    - format:
+- Add 7tv user ID to listen. You can also do this later using the commands
+    - Format:
     ```
     "listeningUsers": [
         "<7tv ID>", "<7tv ID>", ...
     ]
     ```
+
 - Sample config:
 ```
 {
@@ -50,35 +70,44 @@ Slash Commands will work with this fork. Please note that this is a live testing
     "prefix": "!",
     "output_folder": "out",
     "showemote_size": 4,
+    "commands_case_insensitive": true,
+    "private_response": true,
     "SevenTV_case_sensitive": false,
     "SevenTV_category": "TOP",
     "SevenTV_exact_match": false,
     "SevenTV_ignore_tags": true,
     "listen_channel": xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx,
-    "listeningUsers": ["xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx","xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx","xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"]
+    "listeningUsers": ["xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx","xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"]
 }
 ```
 
+
 ## Run the bot
-- Simply click `runbot.bat`
-* The script will add a `tmp` and an output folder if you don't have that already. 
+- Simply double click runbot.bat
+- The script will add a tmp and an output folder if you don't have that already
 
 ## Sync the slash commands
-- Type `!sync` in the discord with your bot in. Note: Only the bot owner can run this command
-- Confirm the sync with `Yes` or `Y`
-- This will run a global sync for your commands and allow you to start using slash commands. There is a maximum delay of 24 hours but you should only need to run this once
+- Type !sync in the discord with your bot in. Note: Only the bot owner can run this command
+- Confirm the sync with Yes or Y
+- This will run a global sync for your commands and allow you to start using slash commands. There is a maximum delay of 24 hours but you should only need to run this once unless you plan on making manual changes to the code
 
-## Usage -  Also works for slash commands
-- Posting a link to 7tv emote will show a gif version of the emote if it is WEBP format
-    - only works with V2 urls, since V3 urls can show embeded emote in Discord
-- !addemote \<link to 7tv emote\> \<\*optional\* emoji name\>
-- !findemoteinchannel \<channel name\> \<text\>
-- !searchemotes \<text\>
-- !listeningchannels
-- !deleteemote <emote\>
+## Usage
+You can use `/` (slash commands) or a prefix (e.g., `!`) for all of these commands except for `sync`. 
 
-[In development]
-- !addlistenchannel <channel name\>   
-- !removelistenchannel <channel name\> \
-\
-Supports live updating. If there are any errors, please raise them as an issue for me to look into!
+| Command                 | Description
+|-------------------------|------------------------|
+| `addemote <7TV Link> <*optional* emoji name>`    | Adds an emote to the server you are in using the provided 7TV Link     
+| `removeemote <emote> or <emote name> `           | Remove a Discord emote from the server by specifying the name/emote                               
+| `findemoteinchannel <channel name> <text>`       | Find emotes in a specific Twitch channel's 7TV emotes                          
+| `searchemotes <text>`                            | Search for emotes using the name                                                                  
+| `addlistenchannel <channel name>`                | Add a Twitch channel to listen for 7TV emote updates                                         
+| `removelistenchannel <channel name>`             | Remove a Twitch channel to stop listening for 7TV emote updates                          
+| `listeningchannels`                              | Show Twitch channels that the bot is listening to for 7TV emote updates
+| `server`                                         | Lists the servers that the bot is in
+
+### Sync the slash commands
+`sync`: Syncs the Slash commands to Discord globally. Be careful not to spam this as it is rate-limited and slow to propagate changes
+
+
+### Notes:
+- Both **addlistenchannel** and **removelistenchannel** support live updates. The bot will start tracking new emotes without requiring a restart
