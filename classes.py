@@ -105,11 +105,16 @@ class Channel:
             self.parsed = json.loads(response.text, object_hook=lambda d: SimpleNamespace(**d))
             if hasattr(self.parsed, 'user'): #If the Attribute "user" does not exist. It means the user does not have a 7TV account so the else will throw the "UserNotFound" Error
                 self.id = self.parsed.user.id 
-                self.info = self.parsed.emote_set.emotes
-                self.list = []
-            else: 
-                print(f"{self.parsed.error}: {self.parsed}")
-                raise UserNotFound
+                if hasattr(self.parsed, 'user'): # If the Attribute "user" does not exist, it means the user does not have a 7TV account
+                    self.id = self.parsed.user.id
+                    self.info = []  # Initialize as an empty list by default
+                    if hasattr(self.parsed, 'emote_set') and hasattr(self.parsed.emote_set, 'emotes'):
+                        self.info = self.parsed.emote_set.emotes  # Set `self.info` only if `emote_set` and `emotes` exist
+                    self.list = []
+                else: 
+                    print(f"{self.parsed.error}: {self.parsed}")
+                    raise UserNotFound
+
 
     def findEmotes(self,emote,exact= True):
         for i in self.info:
