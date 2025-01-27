@@ -11,8 +11,8 @@ import asyncio
 import websockets
 import time
 
-f = open('config.json')
-cfg = json.load(f, object_hook=lambda d: SimpleNamespace(**d))
+file = open('config.json')
+cfg = json.load(file, object_hook=lambda d: SimpleNamespace(**d))
 TOKEN = cfg.TOKEN  #Gets TOKEN from config.json
 folder_dir = cfg.output_folder
 listenchannel_q = asyncio.Queue()
@@ -37,9 +37,13 @@ class Bot(commands.Bot):
         event.set()
     
     async def on_command_error(self, ctx, error):
-        if isinstance(error,commands.errors.EmojiNotFound):
-            msg = "The emote specified was not found. Please check the spelling and capitalisation and try again"
-            await ctx.reply(msg,mention_author=False)
+        if isinstance(error, commands.errors.CommandNotFound):
+            print(error)
+            raise error
+            return  # Ignore command not found errors
+        elif isinstance(error, commands.errors.EmojiNotFound):
+            msg = "The emote specified was not found. Please check the spelling and capitalization and try again"
+            await ctx.reply(msg, mention_author=False)
             print(msg)
         elif isinstance(error,commands.errors.NotOwner):
             app_info = await client.application_info()
@@ -48,7 +52,7 @@ class Bot(commands.Bot):
             await ctx.reply(msg, mention_author=False)
             print(msg)
         else:
-            await ctx.reply(error, mention_author=False)
+            await ctx.reply(str(error), mention_author=False)
             print(error)
             raise error
 
@@ -80,7 +84,7 @@ async def on_message(message):
     await client.process_commands(message)
 
 
-@client.hybrid_command(name = "addemote", with_app_command = True, description = "Adds an emote using the provided 7TV Link")
+@client.hybrid_command(name = "addemote", with_app_command = True, description = "Adds an emote to the server you are in using the provided 7TV Link")
 @app_commands.describe(url='URL of the emote you want to add',
     emotename= 'The name you want to newly added emote to be called')
 @commands.has_permissions(manage_emojis = True)
@@ -90,7 +94,7 @@ async def addemote(ctx, url: str, emotename: str = None):
     ename = "error"
     error = ""
     if ctx.author.guild_permissions.manage_emojis:
-        await ctx.defer(ephemeral = True)
+        await ctx.defer(ephemeral = cfg.private_response)
         emoteID = url.split("/")[-1]
         for i in reversed(range(1, 5)):
             print(f"Trying size {i}x...")
@@ -124,26 +128,32 @@ async def addemote(ctx, url: str, emotename: str = None):
             await ctx.send(f'Unable to add emote {ename}: {error}')
 
 
-@client.hybrid_command(name = "deleteemote", with_app_command = True, description = "Delete a discord emote by specifying the name")
+@client.hybrid_command(name = "removeemote", with_app_command = True, description = "Remove a discord emote from the server by specifying the name/emote")
 @app_commands.describe(emote='Name/Emote you want to delete')
 @commands.has_permissions(manage_emojis = True)
-async def deleteemote(ctx, emote: discord.Emoji):
+async def removeemote(ctx, emote: discord.Emoji):
     if ctx.author.guild_permissions.manage_emojis:
-        await ctx.defer(ephemeral = True)
+        await ctx.defer(ephemeral = cfg.private_response)
         await ctx.guild.delete_emoji(emote)
         msg = (f'Successfully deleted: {emote}')
         print(msg)
         await ctx.send(msg)
 
+@client.hybrid_command(name= "servers", with_app_command = True, description = "Lists the servers that the bot is in")
+@commands.is_owner()
+async def servers(ctx):
+    servers = list(client.guilds)
+    await ctx.send(f"Number of servers I am in: {str(len(servers))}\n" + "\n".join([server.name for server in servers]))
 
-@client.hybrid_command(name = "findemoteinchannel", with_app_command = True, description = "Find an emote in a Twitch Channel")#
+
+@client.hybrid_command(name = "findemoteinchannel", with_app_command = True, description = "Find emotes in a specific Twitch channel's 7TV emotes")#
 @app_commands.describe(channel='Channel you want to search emotes in',
     emote= 'Text you want to search for',
     exact='Do you want the text to match exactly?')
 @commands.has_permissions(manage_emojis = True)
 async def findemoteinchannel(ctx, channel: str, emote: str, exact= False):
     print(f"FindEmoteQuery = Channel:{channel} Emote:{emote}")
-    await ctx.defer(ephemeral = True)
+    await ctx.defer(ephemeral = cfg.private_response)
     try:
         c = Channel(channel)
     except UserNotFound:
@@ -172,7 +182,7 @@ async def findemoteinchannel(ctx, channel: str, emote: str, exact= False):
 async def searchemotes(ctx, emote: str):
     message = ""
     if ctx.author.guild_permissions.manage_emojis:
-        await ctx.defer(ephemeral = True)
+        await ctx.defer(ephemeral = cfg.private_response)
         elist = searchemote(emote)
         message += f'Found {len(elist)} emote(s) that contain "{emote}":'
         for i in elist:
@@ -195,7 +205,7 @@ async def searchemotes(ctx, emote: str):
 @commands.has_permissions(manage_emojis = True)
 async def addlistenchannel(ctx, channel: str):
     if ctx.author.guild_permissions.manage_emojis:
-        await ctx.defer(ephemeral = True)
+        await ctx.defer(ephemeral = cfg.private_response)
         await event.wait()
         await asyncio.sleep(1)
         try:
@@ -250,7 +260,7 @@ async def addlistenchannel(ctx, channel: str):
 @commands.has_permissions(manage_emojis = True)
 async def removelistenchannel(ctx, channel: str):
     if ctx.author.guild_permissions.manage_emojis:
-        await ctx.defer(ephemeral = True)
+        await ctx.defer(ephemeral = cfg.private_response)
         await event.wait()
         await asyncio.sleep(1)
         try:
@@ -306,7 +316,7 @@ async def removelistenchannel(ctx, channel: str):
 async def listeningchannels(ctx):
     msg = "Currently listening: "
     if ctx.author.guild_permissions.manage_emojis:
-        await ctx.defer(ephemeral = True)
+        await ctx.defer(ephemeral = cfg.private_response)
         if cfg.listeningUsers:
             msg = "Currently listening: "
             lc = [Channel.lookup7TVUser(i) for i in cfg.listeningUsers]
@@ -320,6 +330,7 @@ async def listeningchannels(ctx):
 @commands.guild_only()
 @commands.is_owner()
 async def sync(ctx):
+    """Syncs the Slash commands to Discord globally. Be careful not to spam this as this is rate limited and slow to propagate changes"""
     print(f"User {ctx.message.author} ID:{ctx.message.author.id} ran command. Asking for confirmation")
     def check(msg): # checking if it's the same user and channel
         return msg.author == ctx.author and msg.channel == ctx.channel
@@ -339,13 +350,18 @@ async def sync(ctx):
         await ctx.send(msg)        
         return
     print(f"User {ctx.message.author} ran 'sync' (Global) " )
-    await ctx.defer(ephemeral = True)
+    await ctx.defer(ephemeral = cfg.private_response)
     await client.tree.sync()
     msg = (f"Synced slash commands globally for {client.user}.")
     print(msg)
     await ctx.send(msg)        
 
 async def listen():
+    max_backoff_time = 120  # Maximum backoff time in seconds
+    exception_max_backoff_time = 600  # Maximum backoff time for exceptions in seconds
+    backoff_factor = 2  # Backoff factor for exceptions
+    exception_consecutive_503 = 0  # Counter for consecutive 503 exceptions
+    exception_consecutive_exceptions = 0  # Counter for consecutive exceptions
     global ws
     accessPt = "wss://events.7tv.io/v3"
     listenchannel = await listenchannel_q.get()
@@ -354,24 +370,32 @@ async def listen():
     color = discord.Colour.from_rgb(40, 177, 166)
     e = None
     eurl = ""
+    backoff_time = 2  # Initial backoff time in seconds
+    is_connected = True
+    
     while True:
         if listenchannel:
             try:
                 async with websockets.connect(accessPt) as ws:
                     for i in cfg.listeningUsers:
                         await ws.send(json.dumps({
-                        "op": 35,
-                        "d": {
-                            "type": "emote_set.update",
-                            "condition": {
-                                # valid fields in the condition depend on the subscription type
-                                # though in most cases except creations, object_id is acceptable
-                                # to filter for a specific object.
-
-                                "object_id": i
+                            "op": 35,
+                            "d": {
+                                "type": "emote_set.update",
+                                "condition": {
+                                    "object_id": i
+                                }
                             }
-                        }
                         }))
+                    if not is_connected:
+                        app_info = await client.application_info()
+                        if app_info.owner:
+                            owner = app_info.owner
+                            await owner.send(f"The service is back up! Had {exception_consecutive_503} 503's before reconnection. Last backoff time was {backoff_time}")  # Send message when connection is reestablished
+                        is_connected = True
+                    backoff_time = 2  # Reset backoff time after successful connection
+                    exception_consecutive_503 = 0  # Counter for consecutive 503 exceptions
+                    exception_consecutive_exceptions = 0  # Reset consecutive exception counter
                     while event.is_set():
                         msg = await ws.recv()
                         parsed = json.loads(msg)
@@ -379,14 +403,16 @@ async def listen():
                         if "body" in parsed:
                             title = Channel.lookup7TVUser(parsed['body']['id'])
                             if "pushed" in parsed['body']:
-                                e = Emote(parsed['body']['pushed'][0]['value']['id'],3)
-                                message = f"Added emote {parsed['body']['pushed'][0]['value']['name']}:\nhttps://7tv.app/emotes/{e.id}"
+                                e = Emote(parsed['body']['pushed'][0]['value']['id'], 3)
+                                message = f"The user {parsed['body']['actor']['username'].lower().capitalize()} added emote\n{parsed['body']['pushed'][0]['value']['name']}:\nhttps://7tv.app/emotes/{e.id}"
                                 color = discord.Colour.from_rgb(40, 177, 166)
+                                embedmessage = f"/addemote url:https://7tv.app/emotes/{e.id} emotename:{parsed['body']['pushed'][0]['value']['name']}"
 
                             elif "pulled" in parsed['body']:
-                                e = Emote(parsed['body']['pulled'][0]['old_value']['id'],3)
-                                message = f"Removed emote {parsed['body']['pulled'][0]['old_value']['name']}:\nhttps://7tv.app/emotes/{e.id}"
+                                e = Emote(parsed['body']['pulled'][0]['old_value']['id'], 3)
+                                message = f"The user {parsed['body']['actor']['username'].lower().capitalize()} removed emote\n{parsed['body']['pulled'][0]['old_value']['name']}:\nhttps://7tv.app/emotes/{e.id}"
                                 color = discord.Colour.from_rgb(177, 40, 51)
+                                embedmessage = f"/removeemote emote::{parsed['body']['pulled'][0]['old_value']['name']}:"
 
                             if e.isAnimated:
                                 eurl = f"https://cdn.7tv.app/emote/{e.id}/3x.gif"
@@ -399,17 +425,82 @@ async def listen():
                                 colour=color
                             )
 
-                            embed.set_thumbnail(
-                                url=eurl)
-                            embed.set_footer(
-                                text="You can also add the emotes to your server by doing: !addemote <emote url>")
+                            embed.set_thumbnail(url=eurl)
+                            embed.set_footer(text=embedmessage)
                             await listenchannel.send(embed=embed)
 
                     while not event.is_set():
                         await asyncio.sleep(5)
-            except websockets.exceptions.ConnectionClosedError:
-                print("WebSocket connection closed. Reconnecting in 2 seconds...")            
-                await asyncio.sleep(5)
+            except (InvalidStatus, ConnectionClosedError) as e:
+                if isinstance(e, InvalidStatus) and e.status_code in {503, 403, 521}:
+                    if is_connected:
+                        app_info = await client.application_info()
+                        if app_info.owner:
+                            owner = app_info.owner
+                            await owner.send(f" e.status_code The service is currently unavailable. ")  # Send message when connection is down
+                        is_connected = False
+                    print(f" e.status_code Service Unavailable. Reconnecting in {backoff_time} seconds...")
+                    await asyncio.sleep(backoff_time)
+                    backoff_time *= backoff_factor  # Exponential backoff
+                    backoff_time = min(backoff_time, max_backoff_time)  # Limit backoff time to max_backoff_time
+                    exception_consecutive_exceptions = 0  # Reset consecutive exception counter
+                    exception_consecutive_503 += 1
+                elif isinstance(e, ConnectionClosedError):
+                    if e.code == 4012:
+                        await asyncio.sleep(2)  # Add a delay before reconnecting
+                        print(f"Received 4012 (Reboot) cloudflare status code. Reconnecting in 2 seconds...")
+                        continue
+                    elif e.code == 1001:
+                        print(f"Received 1001 (Reboot) status code. Reconnecting in 2 seconds...")
+                        await asyncio.sleep(2)  # Add a delay before reconnecting
+                        app_info = await client.application_info()
+                        if app_info.owner:
+                            owner = app_info.owner
+                            await owner.send(f"Received 1001 and handled cleanly")
+                        continue
+                    else:
+                        print(f"Received unexpected close code {e.code}. Reconnecting in 2 seconds...")
+                        await asyncio.sleep(2)  # Add a delay before reconnecting
+                        continue
+                else:
+                    print(f"An error occurred. Backoff time is {backoff_time} seconds. Error Details: {str(e)}")
+                    print(f"WebSocket connection closed. Uncaught error {str(e)}. Reconnecting in 60 seconds...")
+                    exception_consecutive_exceptions += 1  # Increment consecutive exception counter
+                    if exception_consecutive_exceptions >= 5:  # Change the value to the number of consecutive exceptions before increasing the backoff time
+                        backoff_time *= backoff_factor  # Exponential backoff
+                        backoff_time = min(backoff_time, exception_max_backoff_time)  # Limit backoff time to exception_max_backoff_time
+                        app_info = await client.application_info()
+                        if app_info.owner:
+                            owner = app_info.owner
+                            await owner.send(f"Unhandled WebSocket exception occurred. Backoff time is {backoff_time} seconds.\nError Details:\n```{str(e)}.```")
+                    await asyncio.sleep(backoff_time)
+            except WebSocketException as e:
+                print(f"WebSocket exception occurred: {str(e)}")
+                exception_consecutive_exceptions += 1  # Increment consecutive exception counter
+                if hasattr(e, 'code') and e.code == 1001:
+                    # Handle code 1001 gracefully with a short reconnect delay
+                    print("Received 1001 (going away) status code. Reconnecting in 10 seconds...")
+                    await asyncio.sleep(10)
+                    continue  # Attempt to reconnect without increasing backoff time 
+                if exception_consecutive_exceptions >= 1:  # Change the value to the number of consecutive exceptions before increasing the backoff time
+                    backoff_time *= backoff_factor  # Exponential backoff
+                    exception_consecutive_exceptions = 0  # Reset consecutive exception counter
+                    backoff_time = min(backoff_time, exception_max_backoff_time)  # Limit backoff time to exception_max_backoff_time
+                    app_info = await client.application_info()
+                    if app_info.owner:
+                        owner = app_info.owner
+                        await owner.send(f"Unhandled WebSocket exception occurred:\n```{str(e)}\nCode: {str(e.code)}\nDict: {e.__dict__}```")
+            except Exception as e:
+                print(f"An error occurred. Backoff time is {backoff_time} seconds. Error Details: {str(e)}")
+                exception_consecutive_exceptions += 1  # Increment consecutive exception counter
+                if exception_consecutive_exceptions >= 5:  # Change the value to the number of consecutive exceptions before increasing the backoff time
+                    backoff_time *= backoff_factor  # Exponential backoff
+                    backoff_time = min(backoff_time, exception_max_backoff_time)  # Limit backoff time to exception_max_backoff_time
+                    app_info = await client.application_info()
+                    if app_info.owner:
+                        owner = app_info.owner
+                        await owner.send(f"Unhandled exception occurred. Backoff time is {backoff_time} seconds.\nError Details:\n```{str(e)}.```")
+                await asyncio.sleep(backoff_time)
 
 
 loop = asyncio.new_event_loop()
