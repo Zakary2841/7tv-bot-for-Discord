@@ -73,10 +73,8 @@ This is a passion project/personal tool that I use. Forked from the original cre
     "commands_case_insensitive": true,
     "private_response": true,
     "subscribe_all_emote_sets": true,
-    "SevenTV_case_sensitive": false,
-    "SevenTV_category": "TOP",
+    "SevenTV_category": "TOP_ALL_TIME",
     "SevenTV_exact_match": false,
-    "SevenTV_ignore_tags": true,
     "listen_channel": xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx,
     "listeningUsers": ["xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx","xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"]
 }

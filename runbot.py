@@ -6,7 +6,6 @@ from io import BytesIO
 from types import SimpleNamespace
 from classes import Emote, Channel, UserNotFound, InvalidCharacters
 import json
-from search import searchemote
 import asyncio
 import websockets
 import time
@@ -198,7 +197,7 @@ async def searchemotes(ctx, emote: str):
     message = ""
     if ctx.author.guild_permissions.manage_emojis:
         await ctx.defer(ephemeral = cfg.private_response)
-        elist = searchemote(emote)
+        elist = Emote.searchemotes(emote)
         message += f'Found {len(elist)} emote(s) that contain "{emote}":'
         for i in elist:
             print(f"Found {i.name}")

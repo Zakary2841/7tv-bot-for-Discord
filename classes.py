@@ -4,6 +4,9 @@ import os
 from types import SimpleNamespace
 import time
 
+f = open('config.json')
+cfg = json.load(f, object_hook=lambda d: SimpleNamespace(**d))
+
 class UserNotFound(Exception):
     """Raised when the user does not exist on 7TV."""
     def __init__(self, userid=None):
@@ -94,7 +97,59 @@ class Emote:
         self.output_folder = output_folder
         self.startTime = time.time()
         self.getFile()
+    @staticmethod
+    def searchemotes(command_query):
+        url = "https://api.7tv.app/v4/gql"
 
+        payload = {
+            "operationName": "EmoteSearch",
+            "query": """
+            query EmoteSearch($query: String, $tags: [String!]!, $sortBy: SortBy!, $filters: Filters, $page: Int, $perPage: Int!) {
+                emotes {
+                    search(
+                        query: $query
+                        tags: {tags: $tags, match: ANY}
+                        sort: {sortBy: $sortBy, order: DESCENDING}
+                        filters: $filters
+                        page: $page
+                        perPage: $perPage
+                    ) {
+                        items {
+                            id
+                            defaultName
+                            images { url }
+                            owner { mainConnection { platformDisplayName } }
+                        }
+                        totalCount
+                        pageCount
+                    }
+                }
+            }
+            """,
+            "variables": {
+                "query": command_query,
+                "tags": [],
+                "sortBy": cfg.SevenTV_category,
+                "filters": { # must be empty or only allowed fields
+                "exactMatch": cfg.SevenTV_exact_match},
+                "page": 1,
+                "perPage": 100
+            }
+        }
+
+        headers = {
+            "accept": "application/json",
+            "content-type": "application/json"
+        }
+
+        response = requests.post(url, json=payload, headers=headers)
+        
+        try:
+            info = json.loads(response.text, object_hook=lambda d: SimpleNamespace(**d))
+            return info.data.emotes.search.items if info.data.emotes.search.items else None
+        except (AttributeError, KeyError):
+            return None
+        
 class Channel:
     def __init__(self,name):
         self.url = f"https://api.ivr.fi/v2/twitch/user?login={name}"
@@ -141,7 +196,8 @@ class Channel:
             if tag in i.tags:
                 self.list.append(i)
         return(self.list)
-#Function to look up 7TV users by 7TV ID        
+#Function to look up 7TV users by 7TV ID  
+    @staticmethod      
     def lookup7TVUser(userid: str):
         """Look up a 7TV user by ID, with validation and exceptions."""
         # Validate input type
