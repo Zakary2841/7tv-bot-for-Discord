@@ -110,6 +110,7 @@ class Channel:
                     self.info = []  # Initialize as an empty list by default
                     if hasattr(self.parsed, 'emote_set') and hasattr(self.parsed.emote_set, 'emotes'):
                         self.info = self.parsed.emote_set.emotes  # Set `self.info` only if `emote_set` and `emotes` exist
+                        self.active_set_id = self.parsed.emote_set_id # Current active 7TV emote set for this channel
                     self.list = []
                 else: 
                     print(f"{self.parsed.error}: {self.parsed}")
