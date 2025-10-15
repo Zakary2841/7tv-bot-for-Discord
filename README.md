@@ -3,7 +3,7 @@ This is a bot for 7TV/Twitch that monitors when editors change emotes in the act
 This is a passion project/personal tool that I use. Forked from the original creator [WaterBoiledPizza](https://github.com/WaterBoiledPizza/7tv-bot-for-Discord) 
 
 ## Set up
-**Tested in Python 3.13.1 as of 27/01/2025**
+**Tested in Python 3.13.7 as of 15/10/2025**
 1) Download Python https://www.python.org/downloads/
 - Any version of Python from 3.13+ should work, so getting the latest stable version is recommended
 - Make sure to add Python to PATH
@@ -72,6 +72,7 @@ This is a passion project/personal tool that I use. Forked from the original cre
     "showemote_size": 4,
     "commands_case_insensitive": true,
     "private_response": true,
+    "subscribe_all_emote_sets": true,
     "SevenTV_case_sensitive": false,
     "SevenTV_category": "TOP",
     "SevenTV_exact_match": false,
@@ -100,10 +101,11 @@ You can use `/` (slash commands) or a prefix (e.g., `!`) for all of these comman
 | `removeemote <emote> or <emote name> `           | Remove a Discord emote from the server by specifying the name/emote                               
 | `findemoteinchannel <channel name> <text>`       | Find emotes in a specific Twitch channel's 7TV emotes                          
 | `searchemotes <text>`                            | Search for emotes using the name                                                                  
+| `query7tvchannel <channel name>`                 | Looks up a 7TV channel based on the provided username                                 
 | `addlistenchannel <channel name>`                | Add a Twitch channel to listen for 7TV emote updates                                         
 | `removelistenchannel <channel name>`             | Remove a Twitch channel to stop listening for 7TV emote updates                          
 | `listeningchannels`                              | Show Twitch channels that the bot is listening to for 7TV emote updates
-| `server`                                         | Lists the servers that the bot is in
+| `servers`                                        | Lists the servers that the bot is in
 
 ### Sync the slash commands
 `sync`: Syncs the Slash commands to Discord globally. Be careful not to spam this as it is rate-limited and slow to propagate changes
