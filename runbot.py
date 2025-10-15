@@ -489,19 +489,47 @@ async def listen():
                                 message = f"The user {parsed['body']['actor']['username'].lower().capitalize()} removed emote from \"{emote_set_name}\"\n{parsed['body']['pulled'][0]['old_value']['name']}:\nhttps://7tv.app/emotes/{e.id} "
                                 color = discord.Colour.from_rgb(177, 40, 51)
                                 embedmessage = f"/removeemote emote::{parsed['body']['pulled'][0]['old_value']['name']}:"
-
-                            if e.isAnimated:
-                                eurl = f"https://cdn.7tv.app/emote/{e.id}/3x.gif"
+                            # Emote set rename handling
+                            elif "updated" in parsed['body']:
+                                for item in parsed['body']['updated']:
+                                    if item['key'] == "name":
+                                        old_name = item['old_value']
+                                        new_name = item['value']
+                                        emote_set_table[parsed['body']['id']] = (username, new_name)
+                                        message = f"Emote set renamed: \"{old_name}\" → \"{new_name}\""
+                                        color = discord.Colour.from_rgb(40, 177, 166)
+                                        embedmessage = f"Emote set rename by {parsed['body']['actor']['username'].capitalize()}"
+                                        break
+                            # Catch-all for unknown emote_set.update events
                             else:
-                                eurl = f"https://cdn.7tv.app/emote/{e.id}/3x.png"
+                                owner = (await client.application_info()).owner
+                                if owner:
+                                    try:
+                                        # Grab the 4th value in the body dict
+                                        body_values = list(parsed['body'].values())
+                                        fourth_value = body_values[3] if len(body_values) > 3 else parsed['body']
+                                        # Also get the corresponding key
+                                        body_keys = list(parsed['body'].keys())
+                                        fourth_key = body_keys[3] if len(body_keys) > 3 else "unknown"
+                                    except IndexError:
+                                        fourth_value = parsed['body']
+                                        fourth_key = "unknown"
 
+                                    await owner.send(
+                                        f"Unhandled emote_set.update event for emote set {parsed['body'].get('id','Unknown')}\nKey: {fourth_key}\n```{fourth_value}```"
+                                    )
+                                continue  # Silently ignore for bot
+                             # Generate emote URL but only if applicable
+                            eurl = f"https://cdn.7tv.app/emote/{e.id}/3x.gif" if isinstance(e, Emote) and e.isAnimated else \
+                                   f"https://cdn.7tv.app/emote/{e.id}/3x.png" if isinstance(e, Emote) else None
                             embed = discord.Embed(
                                 title=title,
                                 description=message,
                                 colour=color
                             )
 
-                            embed.set_thumbnail(url=eurl)
+                            if eurl:
+                                embed.set_thumbnail(url=eurl)
                             embed.set_footer(text=embedmessage)
                             await listenchannel.send(embed=embed)
 
