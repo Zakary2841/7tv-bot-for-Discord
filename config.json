@@ -5,6 +5,7 @@
     "showemote_size": 4,
     "commands_case_insensitive": true,
     "private_response": true,
+    "subscribe_all_emote_sets": false,
     "SevenTV_case_sensitive": false,
     "SevenTV_category": "TOP",
     "SevenTV_exact_match": false,
