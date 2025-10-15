@@ -2,6 +2,6 @@
 cd %~dp0
 :runbot
 python runbot.py %*
-pause
+timeout /t 10
 cls
 goto runbot
