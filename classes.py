@@ -5,11 +5,24 @@ from types import SimpleNamespace
 import time
 
 class UserNotFound(Exception):
-    "Raised when the response from the request is 400."
-    pass
+    """Raised when the user does not exist on 7TV."""
+    def __init__(self, userid=None):
+        super().__init__(f"User with ID '{userid}' not found on 7TV.")
+        message = f"User with ID '{userid}' not found on 7TV." if userid else "User not found on 7TV."
+        super().__init__(message)
+        self.userid = userid
+
 class InvalidCharacters(Exception):
-    "Raised when the user inputs invalid characters"
-    pass
+    """Raised when the user inputs invalid characters."""
+    def __init__(self, userid=None):
+        message = f"Invalid characters in user ID: '{userid}'" if userid else "Invalid characters in user ID"
+        super().__init__(message)
+        self.userid = userid
+class InvalidLength(Exception):
+    """Raised when the user ID length is invalid."""
+    def __init__(self, userid):
+        super().__init__(f"Invalid user ID length: '{userid}'")
+        self.userid = userid
     
 class Emote:
     def __init__(self,id, size):
@@ -112,9 +125,9 @@ class Channel:
                         self.info = self.parsed.emote_set.emotes  # Set `self.info` only if `emote_set` and `emotes` exist
                         self.active_set_id = self.parsed.emote_set_id # Current active 7TV emote set for this channel
                     self.list = []
-                else: 
-                    print(f"{self.parsed.error}: {self.parsed}")
-                    raise UserNotFound
+            else: 
+                print(f"{self.parsed.error}: {self.parsed}")
+                raise UserNotFound
 
 
     def findEmotes(self,emote,exact= True):
@@ -129,11 +142,29 @@ class Channel:
                 self.list.append(i)
         return(self.list)
 #Function to look up 7TV users by 7TV ID        
-    def lookup7TVUser(userid):
-        SevenTVUser = f"https://7tv.io/v3/users/{userid}"
-        response = requests.get(SevenTVUser)
-        jsonparsed = json.loads(response.text, object_hook=lambda d: SimpleNamespace(**d))
-        return(jsonparsed.display_name)
+    def lookup7TVUser(userid: str):
+        """Look up a 7TV user by ID, with validation and exceptions."""
+        # Validate input type
+        if not isinstance(userid, str):
+            raise InvalidCharacters(userid)
+        
+        # Validate length
+        if len(userid) != 26:
+            raise InvalidLength(userid)
+        
+        url = f"https://7tv.io/v3/users/{userid}"
+        response = requests.get(url)
+        if response.status_code == 404:
+            raise UserNotFound(userid)
+        try:
+            data = response.json()
+        except Exception:
+            raise UserNotFound(userid)
+        # Extra sanity check for malformed responses
+        if "display_name" not in data:
+            raise UserNotFound(userid)
+        return data["display_name"]
+
 
     def getEmotes(self,emote, size, output_folder,exact= True):
         for i in self.findEmotes(emote, exact):
