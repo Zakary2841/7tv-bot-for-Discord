@@ -18,6 +18,7 @@ folder_dir = cfg.output_folder
 listenchannel_q = asyncio.Queue()
 event = asyncio.Event()
 ws = None #Define ws variable used in "listen" so we can query this in other commands
+emote_set_table = {} #Define emote set table so we can query which emote set belongs to which user
 
 if not os.path.exists(folder_dir):
     os.makedirs(folder_dir)
@@ -233,21 +234,31 @@ async def addlistenchannel(ctx, channel: str):
                     json.dump(cfg.__dict__, f, ensure_ascii=False, indent=4)
                 try:
                     if ws != None: #If ws is not "None" (has been called by "listen") then send op code 35 and listen to the new channel
-                        await ws.send(json.dumps({
-                        "op": 35,
-                        "d": {
-                            "type": "emote_set.update",
-                            "condition": {
-                                "object_id": c.id
-                            }
-                        }
-                        }))
+                        # Decide which emote sets to subscribe
+                        if cfg.subscribe_all_emote_sets:
+                            emote_sets_to_subscribe = c.parsed.user.emote_sets
+                        else:
+                            emote_sets_to_subscribe = [next(
+                                set for set in c.parsed.user.emote_sets if set.id == c.active_set_id
+                            )]
+
+                        for emote_set in emote_sets_to_subscribe:
+                            emote_set.name = "Default" if emote_set.id == c.id else emote_set.name
+                            emote_set_table[emote_set.id] = (c.name, emote_set.name)
+                            await ws.send(json.dumps({
+                                "op": 35,
+                                "d": {
+                                    "type": "emote_set.update",
+                                    "condition": {"object_id": emote_set.id}
+                                }
+                            }))
+                            await asyncio.sleep(0.25)
                 except Exception as err:
                     print(err)
                     await ctx.send(err)
                     event.set()
-                print((f'Added {channel} to listening channels'))
-                await ctx.send(f'Added {channel} to listening channels')
+                print((f'Added {c.name} to listening channels'))
+                await ctx.send(f'Added {c.name} to listening channels')
             except Exception as err:
                 print(err)
                 await ctx.send(err)
@@ -284,20 +295,31 @@ async def removelistenchannel(ctx, channel: str):
                     json.dump(cfg.__dict__, f, ensure_ascii=False, indent=4)
                 try:
                     if ws != None: #If ws is not "None" (has been called by "listen") then send op code 36 and stop listening to the new channel
-                        await ws.send(json.dumps({
-                        "op": 36,
-                        "d": {
-                            "type": "emote_set.update",
-                            "condition": {
-                                "object_id": c.id
+                        if cfg.subscribe_all_emote_sets:
+                            emote_sets_to_unsubscribe = c.parsed.user.emote_sets
+                        else:
+                            emote_sets_to_unsubscribe = [next(
+                                set for set in c.parsed.user.emote_sets if set.id == c.active_set_id
+                            )]
+
+                        for emote_set in emote_sets_to_unsubscribe:
+                            emote_set.name = "Default" if emote_set.id == c.id else emote_set.name
+                            emote_set_table.pop(emote_set.id, None)
+                            await ws.send(json.dumps({
+                            "op": 36,
+                            "d": {
+                                "type": "emote_set.update",
+                                "condition": {
+                                    "object_id": c.id
+                                }
                             }
-                        }
-                        }))
+                            }))
+                            await asyncio.sleep(0.25) 
                 except Exception as err:
                     print(err)
                     await ctx.send(err)
                     event.set()
-                msg = f'Removed {channel} from listening channels'
+                msg = f'Removed {c.name} from listening channels'
                 print(msg)
                 await ctx.send(msg)
             except Exception as err:
@@ -310,6 +332,26 @@ async def removelistenchannel(ctx, channel: str):
             await ctx.send(msg)
         event.set()
 
+@client.hybrid_command(name = "query7tvchannel", with_app_command = True, description = "Looks up a 7TV Channel based on the username provided.")
+@app_commands.describe(channel='Name of the channel you want to query')
+@commands.has_permissions(manage_emojis=True)
+async def query7tvchannel(ctx, channel: str):
+    await ctx.defer(ephemeral=cfg.private_response)
+
+    try:
+        c = Channel(channel)
+    except UserNotFound:
+        msg = f"The channel {channel} is not found. Please check the spelling and try again."
+    except InvalidCharacters:
+        msg = f"The query {channel} contains invalid characters. Please only use A-Z and numbers."
+    else:
+        if hasattr(c, 'id'):
+            msg = f"Found channel {c.name}: https://7tv.app/users/{c.id}"
+        else:
+            msg = f"Unhandled error for {channel}"
+
+    print(msg)
+    await ctx.send(msg)  
 
 @client.hybrid_command(name = "listeningchannels", with_app_command = True, description = "Show Twitch channels that the bot is listening to for 7TV emote updates.")
 @commands.has_permissions(manage_emojis = True)
@@ -377,16 +419,36 @@ async def listen():
         if listenchannel:
             try:
                 async with websockets.connect(accessPt) as ws:
-                    for i in cfg.listeningUsers:
-                        await ws.send(json.dumps({
-                            "op": 35,
-                            "d": {
-                                "type": "emote_set.update",
-                                "condition": {
-                                    "object_id": i
+                    for user_id in cfg.listeningUsers:
+                        channelUsername = Channel.lookup7TVUser(user_id)
+                        channel = Channel(channelUsername)
+                        # Loop through emote sets if cfg.subscribe_all_emote_sets eq true 
+                        if cfg.subscribe_all_emote_sets:
+                            # Grab all the current emote sets
+                            emote_sets_to_subscribe = channel.parsed.user.emote_sets
+                        else:
+                            # Grab just the active emote set instead
+                            active_emote_set = next(
+                                (set for set in channel.parsed.user.emote_sets if set.id == channel.active_set_id),
+                                None
+                            )
+                            emote_sets_to_subscribe = [active_emote_set] if active_emote_set else []
+                        # Read the parsed data and extract relevant emote sets. Store using emote_set_id as the primary key and the data as "username","emote set name". 
+                        for emote_set in emote_sets_to_subscribe:
+                            emote_set.name = "Default" if emote_set.id == user_id else emote_set.name
+                            print(f"Subscribed to {channelUsername} - {emote_set.name}")
+                            emote_set_table[emote_set.id] = (channel.name, emote_set.name)
+                            # Send WS subscribe command for each emote set in the list
+                            await ws.send(json.dumps({
+                                "op": 35,
+                                "d": {
+                                    "type": "emote_set.update",
+                                    "condition": {
+                                        "object_id": emote_set.id
+                                    }
                                 }
-                            }
-                        }))
+                            }))
+                            await asyncio.sleep(0.25) 
                     if not is_connected:
                         app_info = await client.application_info()
                         if app_info.owner:
@@ -401,16 +463,17 @@ async def listen():
                         parsed = json.loads(msg)
                         parsed = parsed['d']
                         if "body" in parsed:
-                            title = Channel.lookup7TVUser(parsed['body']['id'])
+                            username, emote_set_name = emote_set_table.get(parsed['body']['id'], ("Unknown Username", "Unknown Emote Set"))
+                            title = f"{username} - {emote_set_name}"
                             if "pushed" in parsed['body']:
                                 e = Emote(parsed['body']['pushed'][0]['value']['id'], 3)
-                                message = f"The user {parsed['body']['actor']['username'].lower().capitalize()} added emote\n{parsed['body']['pushed'][0]['value']['name']}:\nhttps://7tv.app/emotes/{e.id}"
+                                message = f"The user {parsed['body']['actor']['username'].lower().capitalize()} added emote to \"{emote_set_name}\"\n{parsed['body']['pushed'][0]['value']['name']}:\nhttps://7tv.app/emotes/{e.id}"
                                 color = discord.Colour.from_rgb(40, 177, 166)
                                 embedmessage = f"/addemote url:https://7tv.app/emotes/{e.id} emotename:{parsed['body']['pushed'][0]['value']['name']}"
 
                             elif "pulled" in parsed['body']:
                                 e = Emote(parsed['body']['pulled'][0]['old_value']['id'], 3)
-                                message = f"The user {parsed['body']['actor']['username'].lower().capitalize()} removed emote\n{parsed['body']['pulled'][0]['old_value']['name']}:\nhttps://7tv.app/emotes/{e.id}"
+                                message = f"The user {parsed['body']['actor']['username'].lower().capitalize()} removed emote from \"{emote_set_name}\"\n{parsed['body']['pulled'][0]['old_value']['name']}:\nhttps://7tv.app/emotes/{e.id} "
                                 color = discord.Colour.from_rgb(177, 40, 51)
                                 embedmessage = f"/removeemote emote::{parsed['body']['pulled'][0]['old_value']['name']}:"
 
