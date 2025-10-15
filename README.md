@@ -1,3 +1,7 @@
+# **PLEASE NOTE**
+This branch is not as up to date as Hybrid https://github.com/zakary2841/7tv-bot-for-Discord/tree/hybrid
+I will be updating main in the future to use the new functionality
+
 # 7tv bot for Discord
 This is a bot for 7TV/Twitch that monitors when editors change emotes in the active emote set for the monitored channels. It also has some functional commands for managing emotes in the server.\
 This is a passion project/personal tool that I use. Forked from the original creator [WaterBoiledPizza](https://github.com/WaterBoiledPizza/7tv-bot-for-Discord) 

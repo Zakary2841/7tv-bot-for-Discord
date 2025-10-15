@@ -70,7 +70,6 @@ async def on_ready():
 async def on_message(message):
     if message.author == client.user:
         return
-
     if message.content.startswith(r'https://old.7tv.app/emotes/'):
         emoteID = message.content.split("/")[-1]
         e = Emote(emoteID,cfg.showemote_size)
@@ -81,8 +80,24 @@ async def on_message(message):
             with open(e.file_path, 'rb') as fp:
                 await message.channel.send(file=discord.File(fp))
             os.remove(e.file_path)
-
     await client.process_commands(message)
+ 
+@client.event
+async def on_command_error(ctx, error):
+    if isinstance(error,commands.errors.EmojiNotFound):
+        msg = "The emote specified was not found. Please check the spelling and capitalisation and try again"
+        await ctx.reply(msg,mention_author=False)
+        print(msg)
+    elif isinstance(error,commands.errors.NotOwner):
+        app_info = await client.application_info()
+        botowner = app_info.owner
+        msg = f"You are not allowed to run this command. Only the bot owner <@{botowner.id}> can run this command "
+        await ctx.reply(msg, mention_author=False)
+        print(msg)
+    else:
+        await ctx.reply(error, mention_author=False)
+        print(error)
+        raise error
 
 
 @client.hybrid_command(name = "addemote", with_app_command = True, description = "Adds an emote to the server you are in using the provided 7TV Link")
@@ -117,7 +132,6 @@ async def addemote(ctx, url: str, emotename: str = None):
                         success = True
 
                     except Exception as err:
-                        #print(f'File size of {i}x is too big!')
                         error = err
                         print(err)
 
