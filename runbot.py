@@ -185,7 +185,7 @@ async def findemoteinchannel(ctx, channel: str, emote: str, exact= False):
             colour= discord.Colour.from_rgb(40,177,166)
     )
 
-        embed.set_thumbnail(url="https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_e02650251d204198923de93a0c62f5f5/static/light/3.0")
+        embed.set_thumbnail(url=ctx.me.display_avatar.url)
         embed.set_footer(text="You can also add the emotes to your server as emoji by: !addemote <emote url>")
         await ctx.send(embed= embed)
 
@@ -209,7 +209,7 @@ async def searchemotes(ctx, emote: str):
             colour= discord.Colour.from_rgb(40,177,166)
         )
 
-        embed.set_thumbnail(url="https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_e02650251d204198923de93a0c62f5f5/static/light/3.0")
+        embed.set_thumbnail(url=ctx.me.display_avatar.url)
         embed.set_footer(text="You can also add the emotes to your server as emoji by: !addemote <emote url>")
         await ctx.send(embed= embed)
 
