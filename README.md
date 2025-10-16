@@ -1,5 +1,5 @@
 # 7tv bot for Discord
-This is a bot for 7TV/Twitch that monitors when editors change emotes in the active emote set for the monitored channels. It also has some functional commands for managing emotes in the server.\
+This is a bot for 7TV/Twitch that monitors when editors change emotes in the active (or all of the current) emote set(s) for the monitored channel(s). It also has some functional commands for managing emotes in the server.\
 This is a passion project/personal tool that I use. Forked from the original creator [WaterBoiledPizza](https://github.com/WaterBoiledPizza/7tv-bot-for-Discord) 
 
 ## Set up
@@ -110,4 +110,5 @@ You can use `/` (slash commands) or a prefix (e.g., `!`) for all of these comman
 
 
 ### Notes:
+
 - Both **addlistenchannel** and **removelistenchannel** support live updates. The bot will start tracking new emotes without requiring a restart
